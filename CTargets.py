@@ -1,18 +1,18 @@
 from Target import Target
 
 
-class TargetCLibrary(Target):
-    publicName = 'c_library'
-
-    def __init__(self,
-                 srcFs,
-                 path,
-                 name,
-                 deps=tuple(),
-                 srcs=tuple(),
-                 headers=tuple(),
-                 compiler_flags=tuple(),
-                 linker_flags=tuple()):
+class CTarget(Target):
+    def __init__(
+            self,
+            srcFs,
+            path,
+            name,
+            deps=tuple(),
+            srcs=tuple(),
+            headers=tuple(),
+            compiler_flags=tuple(),
+            transitive_compiler_flags=tuple(),
+            linker_flags=tuple(), ):
         super().__init__(srcFs, path, name, deps)
         normalizedSrcs = []
         for src in srcs:
@@ -32,6 +32,12 @@ class TargetCLibrary(Target):
                 compilerFlag, str), '{}:{}: {}: Invalid compiler flag.'.format(
                     path, name, compilerFlag)
         self.__compilerFlags = frozenset(compiler_flags)
+        for compilerFlag in transitive_compiler_flags:
+            assert compilerFlag and isinstance(
+                compilerFlag,
+                str), '{}:{}: {}: Invalid transitive compiler flag.'.format(
+                    path, name, compilerFlag)
+        self.__transitiveCompilerFlags = frozenset(transitive_compiler_flags)
         for linkerFlag in linker_flags:
             assert linkerFlag and isinstance(
                 linkerFlag, str), '{}:{}: {}: Invalid linker flag.'.format(
@@ -49,6 +55,9 @@ class TargetCLibrary(Target):
 
     def GetLinkerFlags(self):
         return self.__linkerFlags
+
+    def GetTransitiveCompilerFlags(self):
+        return self.__transitiveCompilerFlags
 
     def __repr__(self):
         return self.__str__()
@@ -75,10 +84,16 @@ class TargetCLibrary(Target):
             for compilerFlag in sorted(compilerFlags):
                 result += "    {},\n".format(repr(compilerFlag))
             result += "  ],\n"
-        linkerFlag = self.GetLinkerFlags()
-        if linkerFlag:
+        transitiveCompilerFlags = self.GetTransitiveCompilerFlags()
+        if transitiveCompilerFlags:
+            result += "  transitive_compiler_flags = [\n"
+            for compilerFlag in sorted(transitiveCompilerFlags):
+                result += "    {},\n".format(repr(compilerFlag))
+            result += "  ],\n"
+        linkerFlags = self.GetLinkerFlags()
+        if linkerFlags:
             result += "  linker_flags = [\n"
-            for linkerFlag in sorted(linkerFlag):
+            for linkerFlag in sorted(linkerFlags):
                 result += "    {},\n".format(repr(linkerFlag))
             result += "  ],\n"
         deps = self.GetDeps()
@@ -91,13 +106,17 @@ class TargetCLibrary(Target):
         return result
 
 
-class TargetCBinary(TargetCLibrary):
+class CLibrary(CTarget):
+    publicName = 'c_library'
+
+
+class CBinary(CTarget):
     publicName = 'c_binary'
 
 
-class TargetCxxLibrary(TargetCLibrary):
+class CxxLibrary(CTarget):
     publicName = 'cxx_library'
 
 
-class TargetCxxBinary(TargetCxxLibrary):
+class CxxBinary(CTarget):
     publicName = 'cxx_binary'

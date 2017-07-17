@@ -42,10 +42,9 @@ class Target:
         def scanTargetClasses(clazz):
             for subclazz in clazz.__subclasses__():
                 publicName = getattr(subclazz, 'publicName', None)
-                if publicName is None or publicName in publicGlobals:
-                    continue
-                publicGlobals[publicName] = makeTargetClassBinding(
-                    targets, subclazz, srcFs, path)
+                if publicName is not None and publicName not in publicGlobals:
+                    publicGlobals[publicName] = makeTargetClassBinding(
+                        targets, subclazz, srcFs, path)
                 scanTargetClasses(subclazz)
 
         scanTargetClasses(Target)
