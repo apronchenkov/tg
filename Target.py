@@ -12,17 +12,17 @@ class Target:
         assert srcFs.IsAbsolutePath(path)
         assert srcFs.IsName(name)
         self.__targetRef = TargetRef(path=path, name=name)
-        normalizedDeps = []
+        normalizedDeps = set()
         for dep in deps:
             depTokens = dep.rsplit(':')
             assert (len(depTokens) == 2 and srcFs.IsPath(depTokens[0]) and
                     srcFs.IsName(depTokens[1])
                     ), path + ':' + name + ': ' + dep + ': Invalid dependency.'
-            normalizedDeps.append(
+            normalizedDeps.add(
                 TargetRef(
                     path=srcFs.CombinePaths(path, depTokens[0]),
                     name=depTokens[1]))
-        self.__deps = frozenset(normalizedDeps)
+        self.__deps = tuple(sorted(normalizedDeps))
 
     def GetTargetRef(self):
         return self.__targetRef

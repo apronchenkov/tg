@@ -14,35 +14,36 @@ class CTarget(Target):
             transitive_compiler_flags=tuple(),
             linker_flags=tuple(), ):
         super().__init__(srcFs, path, name, deps)
-        normalizedSrcs = []
+        normalizedSrcs = set()
         for src in srcs:
             assert src and srcFs.IsRelativePath(
                 src), '{}:{}: {}: Invalid src.'.format(path, name, src)
-            normalizedSrcs.append(srcFs.CombinePaths(path, src))
-        self.__srcs = frozenset(normalizedSrcs)
-        normalizedHeaders = []
+            normalizedSrcs.add(srcFs.CombinePaths(path, src))
+        self.__srcs = tuple(sorted(normalizedSrcs))
+        normalizedHeaders = set()
         for header in headers:
             assert header and srcFs.IsRelativePath(
                 header), '{}:{}: {}: Invalid header.'.format(
                     path, name, header)
-            normalizedHeaders.append(srcFs.CombinePaths(path, header))
-        self.__headers = frozenset(normalizedHeaders)
+            normalizedHeaders.add(srcFs.CombinePaths(path, header))
+        self.__headers = tuple(sorted(normalizedHeaders))
         for compilerFlag in compiler_flags:
             assert compilerFlag and isinstance(
                 compilerFlag, str), '{}:{}: {}: Invalid compiler flag.'.format(
                     path, name, compilerFlag)
-        self.__compilerFlags = frozenset(compiler_flags)
+        self.__compilerFlags = tuple(sorted(set(compiler_flags)))
         for compilerFlag in transitive_compiler_flags:
             assert compilerFlag and isinstance(
                 compilerFlag,
                 str), '{}:{}: {}: Invalid transitive compiler flag.'.format(
                     path, name, compilerFlag)
-        self.__transitiveCompilerFlags = frozenset(transitive_compiler_flags)
+        self.__transitiveCompilerFlags = tuple(
+            sorted(set(transitive_compiler_flags)))
         for linkerFlag in linker_flags:
             assert linkerFlag and isinstance(
                 linkerFlag, str), '{}:{}: {}: Invalid linker flag.'.format(
                     path, name, linkerFlag)
-        self.__linkerFlags = frozenset(linker_flags)
+        self.__linkerFlags = tuple(sorted(set(linker_flags)))
 
     def GetSrcs(self):
         return self.__srcs
@@ -69,37 +70,37 @@ class CTarget(Target):
         srcs = self.GetSrcs()
         if srcs:
             result += "  srcs = [\n"
-            for src in sorted(srcs):
+            for src in srcs:
                 result += "    {},\n".format(repr(src))
             result += "  ],\n"
         headers = self.GetHeaders()
         if headers:
             result += "  headers = [\n"
-            for header in sorted(headers):
+            for header in headers:
                 result += "    {},\n".format(repr(header))
             result += "  ],\n"
         compilerFlags = self.GetCompilerFlags()
         if compilerFlags:
             result += "  compiler_flags = [\n"
-            for compilerFlag in sorted(compilerFlags):
+            for compilerFlag in compilerFlags:
                 result += "    {},\n".format(repr(compilerFlag))
             result += "  ],\n"
         transitiveCompilerFlags = self.GetTransitiveCompilerFlags()
         if transitiveCompilerFlags:
             result += "  transitive_compiler_flags = [\n"
-            for compilerFlag in sorted(transitiveCompilerFlags):
+            for compilerFlag in transitiveCompilerFlags:
                 result += "    {},\n".format(repr(compilerFlag))
             result += "  ],\n"
         linkerFlags = self.GetLinkerFlags()
         if linkerFlags:
             result += "  linker_flags = [\n"
-            for linkerFlag in sorted(linkerFlags):
+            for linkerFlag in linkerFlags:
                 result += "    {},\n".format(repr(linkerFlag))
             result += "  ],\n"
         deps = self.GetDeps()
         if deps:
             result += "  deps = [\n"
-            for dep in sorted(self.GetDeps()):
+            for dep in self.GetDeps():
                 result += "    {},\n".format(repr(dep))
             result += "  ],\n"
         result += ")"
