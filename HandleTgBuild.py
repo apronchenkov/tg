@@ -20,39 +20,39 @@ def MakeToken(targetRefs):
 
 
 def GenerateFakeRoot(srcFs, targets, ninja):
+    symlinks = set()
+
+    def generateSymlink(inputPath, outputPath):
+        ninja.build(
+            outputs=outputPath,
+            rule='symlink',
+            variables={
+                'relpath_in':
+                os.path.relpath(inputPath, os.path.dirname(outputPath))
+            },
+            order_only='build.ninja')
+        symlinks.add(outputPath)
+
     dirs = set()
     for _, target in sorted(targets.items()):
         for src in sorted(target.GetSrcs()):
             dirs.add(src.rsplit('/', 1)[0])
         for header in sorted(target.GetHeaders()):
             dirs.add(header.rsplit('/', 1)[0])
-    fakeRootInputs = []
+
     for dir in sorted(dirs):
-        output = 'pkg' + dir[1:] + '/@'
-        fakeRootInputs.append(output)
-        ninja.build(
-            outputs=output,
-            rule='symlink',
-            inputs=str(srcFs.MakeRealPath(srcFs.FindLocalRoot(dir))),
-            order_only='build.ninja')
+        generateSymlink('pkg' + srcFs.FindLocalRoot(dir)[1:],
+                        'pkg' + dir[1:] + '/@')
     for _, target in sorted(targets.items()):
         for src in sorted(target.GetSrcs()):
-            output = 'pkg' + src[1:]
-            fakeRootInputs.append(output)
-            ninja.build(
-                outputs=output,
-                rule='symlink',
-                inputs=str(srcFs.MakeRealPath(src)),
-                order_only='build.ninja')
+            generateSymlink(
+                'src' + src[1:],
+                'pkg' + src[1:], )
         for header in sorted(target.GetHeaders()):
-            output = 'pkg' + header[1:]
-            fakeRootInputs.append(output)
-            ninja.build(
-                outputs=output,
-                rule='symlink',
-                inputs=str(srcFs.MakeRealPath(header)),
-                order_only='build.ninja')
-    ninja.build(outputs='fake_root', rule='phony', inputs=fakeRootInputs)
+            generateSymlink(
+                'src' + header[1:],
+                'pkg' + header[1:], )
+    ninja.build(outputs='fake_root', rule='phony', inputs=sorted(symlinks))
     ninja.newline()
 
 
@@ -257,7 +257,7 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
 
     ninja.rule(
         name='symlink',
-        command='$ln $in $out',
+        command='$ln $relpath_in $out',
         description='Creating symlink $out', )
     ninja.newline()
     ninja.newline()
