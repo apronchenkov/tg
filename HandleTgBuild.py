@@ -116,13 +116,14 @@ def GenerateCBinary(target, transitiveDeps, ninja):
             inputs=cInput(src),
             order_only=['build.ninja', 'fake_root'],
             variables={'extra_compiler_flags': extraCompilerFlags})
+    objs = sorted(objs)
     for dep in transitiveDeps:
         if dep.GetSrcs():
-            objs.add(cLib(dep.GetTargetRef()))
+            objs.append(cLib(dep.GetTargetRef()))
     ninja.build(
         outputs=cBin(target.GetTargetRef()),
         rule='cc_link',
-        inputs=sorted(objs),
+        inputs=objs,
         variables={'extra_linker_flags': extraLinkerFlags})
     ninja.newline()
 
@@ -169,13 +170,14 @@ def GenerateCxxBinary(target, transitiveDeps, ninja):
             inputs=cInput(src),
             order_only=['build.ninja', 'fake_root'],
             variables={'extra_compiler_flags': extraCompilerFlags})
+    objs = sorted(objs)
     for dep in transitiveDeps:
         if dep.GetSrcs():
-            objs.add(cLib(dep.GetTargetRef()))
+            objs.append(cLib(dep.GetTargetRef()))
     ninja.build(
         outputs=cBin(target.GetTargetRef()),
         rule='cxx_link',
-        inputs=sorted(objs),
+        inputs=objs,
         variables={'extra_linker_flags': extraLinkerFlags})
     ninja.newline()
 
@@ -287,11 +289,18 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
 
     transitiveDepsDict = dict()
     for target in targetPlan.values():
-        tmp = set()
+        transitiveDeps = []
         for depRef in target.GetDeps():
-            tmp.add(targetPlan[depRef])
-            tmp.update(transitiveDepsDict[depRef])
-        transitiveDepsDict[target.GetTargetRef()] = tmp
+            transitiveDeps.append(targetPlan[depRef])
+            transitiveDeps.extend(transitiveDepsDict[depRef])
+        # preserve only the latest entrance of each dependency
+        visited = set()
+        tmp = []
+        for dep in reversed(transitiveDeps):
+            if dep.GetTargetRef() not in visited:
+                visited.add(dep.GetTargetRef())
+                tmp.append(dep)
+        transitiveDepsDict[target.GetTargetRef()] = list(reversed(tmp))
 
     for targetRef, target in targetPlan.items():
         if isinstance(target, CTargets.CLibrary):
