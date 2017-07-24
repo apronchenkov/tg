@@ -325,42 +325,58 @@ def ValidateBuildNinjaToken(tgPath, targetRefs):
         return istream.readline().strip() == MakeToken(targetRefs)
 
 
-def HandleTgBuild(tgPath, args):
-    # init
-    srcPath = tgPath / 'src'
-    srcFs = SrcFs(srcPath)
+def ListTargets(targetCache, pattern):
     # currentPath
+    srcFs = targetCache.GetSrcFs()
+    srcFsRoot = srcFs.GetRealSrcRoot()
     cwd = pathlib.Path.cwd()
-    if srcPath == cwd:
-        currentPath = '/'
-    elif srcPath in cwd.parents:
-        currentPath = '//' + str(cwd.relative_to(srcPath))
+    currentPath = None
+    if srcFsRoot == cwd or srcFsRoot in cwd.parents:
+        currentPath = srcFs.MakePath(cwd)
+    # parse pattern
+    path = None
+    name = None
+    tokens = pattern.rsplit(':', 1)
+    if len(tokens) == 2:
+        path = tokens[0]
+        name = tokens[1]
+    elif pattern == '.':
+        path = ''
     else:
-        currentPath = None
-    # targetRefs
+        path = pattern
+    assert srcFs.IsPath(path), '{}: Invalid target.'.format(pattern)
+    assert not name or srcFs.IsName(name), '{}: Invalid target.'.format(
+        pattern)
+    if not srcFs.IsAbsolutePath(path):
+        assert currentPath is not None, '{}: Unable to find target.'.format(
+            pattern)
+        path = srcFs.CombinePaths(currentPath, path)
+    result = []
+    if name:
+        result.append(TargetRef(path=path, name=name))
+    else:
+        for realPath in srcFs.MakeRealPath(path).rglob('TARGETS'):
+            if realPath.is_file():
+                result.extend(
+                    targetCache.GetTargets(srcFs.MakePath(realPath.parent))
+                    .keys())
+    return result
+
+
+def HandleTgBuild(tgPath, args):
+    srcFs = SrcFs(tgPath / 'src')
+    targetCache = TargetCache(srcFs)
     ninjaTrainingMode = False
     targetRefs = set()
     for arg in args:
         if arg == kFlagNinjaTraining:
             ninjaTrainingMode = True
             continue
-        tokens = arg.rsplit(':', 1)
-        assert len(tokens) == 2 and srcFs.IsPath(tokens[0]) and srcFs.IsName(
-            tokens[1]), '{}: Invalid target.'.format(arg)
-        if srcFs.IsAbsolutePath(tokens[0]):
-            targetRefs.add(TargetRef(path=tokens[0], name=tokens[1]))
-        else:
-            assert currentPath is not None, '{}: Unable to find target.'.format(
-                token[0])
-            targetRefs.add(
-                TargetRef(
-                    path=srcFs.CombinePaths(currentPath, tokens[0]),
-                    name=tokens[1]))
+        targetRefs.update(ListTargets(targetCache, arg))
     targetRefs = tuple(sorted(targetRefs))
     assert targetRefs, "tg build: List of targets is expected."
     # Ninja training
     if ninjaTrainingMode or not ValidateBuildNinjaToken(tgPath, targetRefs):
-        targetCache = TargetCache(srcFs)
         with (tgPath / 'build.ninja').open('w', encoding='utf-8') as ostream:
             ostream.write(
                 MakeBuildNinja(tgPath, srcFs, targetRefs,

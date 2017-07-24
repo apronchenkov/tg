@@ -7,15 +7,20 @@ from Target import Target
 class TargetCache:
     def __init__(self, srcFs):
         self.__srcFs = srcFs
-        self.__loadedPaths = set()
-        self.__loadedTargets = dict()
+        self.__loadedPaths = dict()
+
+    def GetSrcFs(self):
+        return self.__srcFs
+
+    def GetTargets(self, path):
+        assert self.__srcFs.IsAbsolutePath(
+            path), '{}: Absolute path expected.'.format(path)
+        if path not in self.__loadedPaths:
+            self.__loadedPaths[path] = Target.LoadTargets(self.__srcFs, path)
+        return self.__loadedPaths[path]
 
     def GetTarget(self, targetRef):
-        if targetRef.path not in self.__loadedPaths:
-            self.__loadedTargets.update(
-                Target.LoadTargets(self.__srcFs, targetRef.path))
-            self.__loadedPaths.add(targetRef.path)
-        result = self.__loadedTargets.get(targetRef)
+        result = self.GetTargets(targetRef.path).get(targetRef)
         assert result, '{}: Missing target.'.format(targetRef)
         return result
 

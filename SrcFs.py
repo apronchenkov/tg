@@ -68,6 +68,9 @@ class SrcFs:
         self.__localRootCache = dict()
         assert self.__srcRoot.is_dir()
 
+    def GetRealSrcRoot(self):
+        return self.__srcRoot
+
     def IsName(self, string):
         return IsName(string)
 
@@ -119,6 +122,13 @@ class SrcFs:
     def MakeRealPath(self, path):
         assert IsAbsolutePath(path), '{}: Absolute path expected.'.format(path)
         return self._MakeRealPath(path)
+
+    def MakePath(self, realPath):
+        assert realPath == self.__srcRoot or self.__srcRoot in realPath.parents, '{}: Unable to convert path.'.format(
+            realPath)
+        if realPath == self.__srcRoot:
+            return '/'
+        return '//' + str(realPath.relative_to(self.__srcRoot))
 
     def ReadText(self, path):
         return self.MakeRealPath(path).read_text(encoding='utf-8')
