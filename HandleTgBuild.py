@@ -195,7 +195,7 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     ninja.newline()
 
     ninja.variable('ar', 'ar')
-    ninja.variable('ln', 'ln -sFf')
+    ninja.variable('ln', 'ln -shf')
     ninja.variable('rm', 'rm -r -f')
     ninja.variable('tg', 'tg')
     ninja.newline()
