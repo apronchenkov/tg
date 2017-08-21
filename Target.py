@@ -15,8 +15,8 @@ class Target:
         normalizedDeps = set()
         for dep in deps:
             depTokens = dep.rsplit(':')
-            assert (len(depTokens) == 2 and srcFs.IsPath(depTokens[0]) and
-                    srcFs.IsName(depTokens[1])
+            assert (len(depTokens) == 2 and srcFs.IsPath(depTokens[0])
+                    and srcFs.IsName(depTokens[1])
                     ), path + ':' + name + ': ' + dep + ': Invalid dependency.'
             normalizedDeps.add(
                 TargetRef(
@@ -49,11 +49,9 @@ class Target:
 
         scanTargetClasses(Target)
         targetsPath = srcFs.CombinePaths(path, kTargetsFile)
-        exec(
-            compile(
-                srcFs.ReadText(targetsPath),
-                str(srcFs.MakeRealPath(targetsPath)), 'exec'), publicGlobals,
-            {})
+        exec (compile(
+            srcFs.ReadText(targetsPath),
+            str(srcFs.MakeRealPath(targetsPath)), 'exec'), publicGlobals, {})
 
         result = dict()
         for target in targets:

@@ -200,25 +200,28 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     ninja.variable('tg', 'tg')
     ninja.newline()
 
+    ccFlags = [
+        '-O2',
+        '-g',
+        '-mcpu=native',
+        '-march=native',
+        '-pthread',
+        '-Wall',
+        '-Wextra',
+        '-pedantic',
+        '-Werror',
+        '-isystem pkg',
+    ]
     if os.uname().sysname == 'Darwin':
         ninja.variable('cc', 'clang')
         ninja.variable('cxx', 'clang++')
-        ninja.variable(
-            'cc_flags',
-            '-O2 -g -std=c11 -Wall -Wextra -pedantic -Werror -isystem pkg')
-        ninja.variable(
-            'cxx_flags',
-            '-O2 -g -std=c++14 -stdlib=libc++ -Wall -Wextra -pedantic -Werror -isystem pkg'
-        )
+        ninja.variable('cc_flags', ccFlags + ['-std=c11'])
+        ninja.variable('cxx_flags', ccFlags + ['-std=c++14', '-stdlib=libc++'])
     else:
         ninja.variable('cc', 'gcc')
         ninja.variable('cxx', 'g++')
-        ninja.variable(
-            'cc_flags',
-            '-O2 -g -std=gnu11 -Wall -Wextra -pedantic -Werror -isystem pkg')
-        ninja.variable(
-            'cxx_flags',
-            '-O2 -g -std=c++14 -Wall -Wextra -pedantic -Werror -isystem pkg')
+        ninja.variable('cc_flags', ccFlags + ['-std=gnu11'])
+        ninja.variable('cxx_flags', ccFlags + ['-std=c++14'])
     ninja.newline()
 
     ninja.rule(
