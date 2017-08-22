@@ -203,9 +203,7 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     ccFlags = [
         '-O2',
         '-g',
-        '-mcpu=native',
         '-march=native',
-        '-pthread',
         '-Wall',
         '-Wextra',
         '-pedantic',
@@ -220,8 +218,10 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     else:
         ninja.variable('cc', 'gcc')
         ninja.variable('cxx', 'g++')
-        ninja.variable('cc_flags', ccFlags + ['-std=gnu11'])
-        ninja.variable('cxx_flags', ccFlags + ['-std=c++14'])
+        ninja.variable('cc_flags',
+                       ccFlags + ['-std=gnu11', '-pthread', '-mcpu=native'])
+        ninja.variable('cxx_flags',
+                       ccFlags + ['-std=c++14', '-pthread', '-mcpu=native'])
     ninja.newline()
 
     ninja.rule(
