@@ -237,14 +237,14 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
         ninja.variable('cc', 'clang')
         ninja.variable('cxx', 'clang++')
         ninja.variable('cc_flags', ccFlags + ['-std=c11'])
-        ninja.variable('cxx_flags', ccFlags + ['-std=c++14', '-stdlib=libc++'])
+        ninja.variable('cxx_flags', ccFlags + ['-std=c++17', '-stdlib=libc++'])
     else:
         ninja.variable('cc', 'gcc')
         ninja.variable('cxx', 'g++')
         ninja.variable('cc_flags',
                        ccFlags + ['-std=gnu11', '-pthread', '-mcpu=native'])
         ninja.variable('cxx_flags',
-                       ccFlags + ['-std=c++14', '-pthread', '-mcpu=native'])
+                       ccFlags + ['-std=c++17', '-pthread', '-mcpu=native'])
     ninja.newline()
 
     ninja.rule(
