@@ -7,6 +7,7 @@ import pathlib
 import CCTargets
 
 from HandleTgBuild import HandleTgBuild
+from HandleTgClean import HandleTgClean
 
 
 def ShowGeneralHelp():
@@ -19,6 +20,7 @@ def ShowGeneralHelp():
           "The commands are:\n"
           "\n"
           "        build       compile targets and dependencies\n"
+          "        clean       remove compiled artifacts\n"
           "\n"
           "Environment variables:\n"
           "        TGPATH      path to the root of Tg environment\n"
@@ -35,6 +37,8 @@ def main():
     tgPath = pathlib.Path(tgPath).expanduser()
     if sys.argv[1] == 'build':
         HandleTgBuild(tgPath, sys.argv[2:])
+    elif sys.argv[1] == 'clean':
+        HandleTgClean(tgPath, sys.argv[2:])
     else:
         assert False, '{}: Unknown command.'.format(sys.argv[1])
 
