@@ -63,7 +63,12 @@ def cLib(targetRef):
 
 def cBin(targetRef):
     assert isinstance(targetRef, TargetRef)
-    return 'bin/' + targetRef.name
+    return 'bin' + str(targetRef)[1:].replace(':', '/')
+
+
+def cBinSymlink(targetRef):
+    assert isinstance(targetRef, TargetRef)
+    return 'src' + str(targetRef)[1:].replace(':', '/')
 
 
 def cObj(src):
@@ -125,6 +130,15 @@ def GenerateCBinary(target, transitiveDeps, ninja):
         rule='cc_link',
         inputs=objs,
         variables={'extra_linker_flags': extraLinkerFlags})
+    ninja.build(
+        outputs=cBinSymlink(target.GetTargetRef()),
+        rule='symlink',
+        variables={
+            'relpath_in':
+            os.path.relpath(
+                cBin(target.GetTargetRef()),
+                os.path.dirname(cBinSymlink(target.GetTargetRef())))
+        }, )
     ninja.newline()
 
 
@@ -179,6 +193,15 @@ def GenerateCxxBinary(target, transitiveDeps, ninja):
         rule='cxx_link',
         inputs=objs,
         variables={'extra_linker_flags': extraLinkerFlags})
+    ninja.build(
+        outputs=cBinSymlink(target.GetTargetRef()),
+        rule='symlink',
+        variables={
+            'relpath_in':
+            os.path.relpath(
+                cBin(target.GetTargetRef()),
+                os.path.dirname(cBinSymlink(target.GetTargetRef())))
+        }, )
     ninja.newline()
 
 
