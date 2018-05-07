@@ -7,7 +7,7 @@ import pathlib
 import sys
 import subprocess
 
-import CTargets
+import CCTargets
 from SrcFs import SrcFs
 from TargetCache import TargetCache
 from TargetRef import TargetRef
@@ -56,151 +56,123 @@ def GenerateFakeRoot(srcFs, targets, ninja):
     ninja.newline()
 
 
-def cLib(targetRef):
+def IsCFile(src):
+    return src.endswith('.c')
+
+
+def IsCxxFile(src):
+    return src.endswith('.cpp') or src.endswith('.cc')
+
+
+def IsHeaderFile(src):
+    return src.endswith('.h') or src.endswith('.hh')
+
+
+def ccLib(targetRef):
     assert isinstance(targetRef, TargetRef)
     return 'pkg' + str(targetRef)[1:].replace(':', '/') + '.a'
 
 
-def cBin(targetRef):
+def ccBin(targetRef):
     assert isinstance(targetRef, TargetRef)
     return 'bin' + str(targetRef)[1:].replace(':', '/')
 
 
-def cBinSymlink(targetRef):
+def ccBinSymlink(targetRef):
     assert isinstance(targetRef, TargetRef)
     return 'src' + str(targetRef)[1:].replace(':', '/')
 
 
-def cObj(src):
+def ccObj(src):
+    assert IsCFile(src) or IsCxxFile(src)
     return 'pkg' + src[1:] + '.o'
 
 
-def cInput(src):
+def ccInput(src):
     return 'pkg' + src[1:]
 
 
-def GenerateCLibrary(target, transitiveDeps, ninja):
-    assert isinstance(target, CTargets.CLibrary)
-    if not target.GetSrcs():
-        # header-only
-        return
+def GenerateCCLibrary(target, transitiveDeps, ninja):
+    assert isinstance(target, CCTargets.CCLibrary)
+    compilerVariables = {}
     tmp = set(target.GetCompilerFlags())
     for dep in transitiveDeps:
         tmp.update(dep.GetTransitiveCompilerFlags())
-    extraCompilerFlags = ' '.join(sorted(tmp))
+    if tmp:
+        compilerVariables['extra_compiler_flags'] = ' '.join(sorted(tmp))
     objs = set()
     for src in sorted(target.GetSrcs()):
-        objs.add(cObj(src))
+        if IsHeaderFile(src):
+            continue
+        elif IsCFile(src):
+            compilerRule = 'c_compile'
+        elif IsCxxFile(src):
+            compilerRule = 'cxx_compile'
+        else:
+            raise RuntimeError('Unexpected file extension: ' + src)
+        objs.add(ccObj(src))
         ninja.build(
-            outputs=cObj(src),
-            rule='cc_compile',
-            inputs=cInput(src),
+            outputs=ccObj(src),
+            rule=compilerRule,
+            inputs=ccInput(src),
             order_only=['build.ninja', 'fake_root'],
-            variables={'extra_compiler_flags': extraCompilerFlags})
-    ninja.build(
-        outputs=cLib(target.GetTargetRef()), rule='ar', inputs=sorted(objs))
-    ninja.newline()
+            variables=compilerVariables)
+    if objs:
+        ninja.build(
+            outputs=ccLib(target.GetTargetRef()),
+            rule='ar',
+            inputs=sorted(objs))
+        ninja.newline()
 
 
-def GenerateCBinary(target, transitiveDeps, ninja):
-    assert isinstance(target, CTargets.CBinary)
+def GenerateCCBinary(target, transitiveDeps, ninja):
+    assert isinstance(target, CCTargets.CCBinary)
+    compilerVariables = {}
     tmp = set(target.GetCompilerFlags())
     for dep in transitiveDeps:
         tmp.update(dep.GetTransitiveCompilerFlags())
-    extraCompilerFlags = ' '.join(sorted(tmp))
+    if tmp:
+        compilerVariables['extra_compiler_flags'] = ' '.join(sorted(tmp))
+    linkerVariables = {}
     tmp = set(target.GetLinkerFlags())
     for dep in transitiveDeps:
         tmp.update(dep.GetLinkerFlags())
-    extraLinkerFlags = ' '.join(sorted(tmp))
+    if tmp:
+        linkerVariables['extra_linker_flags'] = ' '.join(sorted(tmp))
     objs = set()
     for src in sorted(target.GetSrcs()):
-        objs.add(cObj(src))
+        if IsHeaderFile(src):
+            continue
+        elif IsCFile(src):
+            compilerRule = 'c_compile'
+        elif IsCxxFile(src):
+            compilerRule = 'cxx_compile'
+        else:
+            raise RuntimeError('Unexpected file extension: ' + src)
+        objs.add(ccObj(src))
         ninja.build(
-            outputs=cObj(src),
-            rule='cc_compile',
-            inputs=cInput(src),
+            outputs=ccObj(src),
+            rule=compilerRule,
+            inputs=ccInput(src),
             order_only=['build.ninja', 'fake_root'],
-            variables={'extra_compiler_flags': extraCompilerFlags})
+            variables=compilerVariables)
     objs = sorted(objs)
     for dep in transitiveDeps:
         if dep.GetSrcs():
-            objs.append(cLib(dep.GetTargetRef()))
+            objs.append(ccLib(dep.GetTargetRef()))
     ninja.build(
-        outputs=cBin(target.GetTargetRef()),
-        rule='cc_link',
-        inputs=objs,
-        variables={'extra_linker_flags': extraLinkerFlags})
-    ninja.build(
-        outputs=cBinSymlink(target.GetTargetRef()),
-        rule='symlink',
-        variables={
-            'relpath_in':
-            os.path.relpath(
-                cBin(target.GetTargetRef()),
-                os.path.dirname(cBinSymlink(target.GetTargetRef())))
-        }, )
-    ninja.newline()
-
-
-def GenerateCxxLibrary(target, transitiveDeps, ninja):
-    assert isinstance(target, CTargets.CxxLibrary)
-    if not target.GetSrcs():
-        # header-only
-        return
-    tmp = set(target.GetCompilerFlags())
-    for dep in transitiveDeps:
-        tmp.update(dep.GetTransitiveCompilerFlags())
-    extraCompilerFlags = ' '.join(sorted(tmp))
-    objs = set()
-    for src in sorted(target.GetSrcs()):
-        objs.add(cObj(src))
-        ninja.build(
-            outputs=cObj(src),
-            rule='cxx_compile',
-            inputs=cInput(src),
-            order_only=['build.ninja', 'fake_root'],
-            variables={'extra_compiler_flags': extraCompilerFlags})
-    ninja.build(
-        outputs=cLib(target.GetTargetRef()), rule='ar', inputs=sorted(objs))
-    ninja.newline()
-
-
-def GenerateCxxBinary(target, transitiveDeps, ninja):
-    assert isinstance(target, CTargets.CxxBinary)
-    tmp = set(target.GetCompilerFlags())
-    for dep in transitiveDeps:
-        tmp.update(dep.GetTransitiveCompilerFlags())
-    extraCompilerFlags = ' '.join(sorted(tmp))
-    tmp = set(target.GetLinkerFlags())
-    for dep in transitiveDeps:
-        tmp.update(dep.GetLinkerFlags())
-    extraLinkerFlags = ' '.join(sorted(tmp))
-    objs = set()
-    for src in sorted(target.GetSrcs()):
-        objs.add(cObj(src))
-        ninja.build(
-            outputs=cObj(src),
-            rule='cxx_compile',
-            inputs=cInput(src),
-            order_only=['build.ninja', 'fake_root'],
-            variables={'extra_compiler_flags': extraCompilerFlags})
-    objs = sorted(objs)
-    for dep in transitiveDeps:
-        if dep.GetSrcs():
-            objs.append(cLib(dep.GetTargetRef()))
-    ninja.build(
-        outputs=cBin(target.GetTargetRef()),
+        outputs=ccBin(target.GetTargetRef()),
         rule='cxx_link',
         inputs=objs,
-        variables={'extra_linker_flags': extraLinkerFlags})
+        variables=linkerVariables)
     ninja.build(
-        outputs=cBinSymlink(target.GetTargetRef()),
+        outputs=ccBinSymlink(target.GetTargetRef()),
         rule='symlink',
         variables={
             'relpath_in':
             os.path.relpath(
-                cBin(target.GetTargetRef()),
-                os.path.dirname(cBinSymlink(target.GetTargetRef())))
+                ccBin(target.GetTargetRef()),
+                os.path.dirname(ccBinSymlink(target.GetTargetRef())))
         }, )
     ninja.newline()
 
@@ -248,18 +220,12 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     ninja.newline()
 
     ninja.rule(
-        name='cc_compile',
+        name='c_compile',
         command=
         '$cc $cc_flags -MMD -MT $out -MF $out.d -c $in -o $out $extra_compiler_flags',
         description='Building C file $in',
         depfile='$out.d',
         deps='gcc')
-    ninja.newline()
-
-    ninja.rule(
-        name='cc_link',
-        command='$cc $cc_flags $in -o $out $extra_linker_flags',
-        description='Linking $out', )
     ninja.newline()
 
     ninja.rule(
@@ -329,14 +295,10 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
         transitiveDepsDict[target.GetTargetRef()] = list(reversed(tmp))
 
     for targetRef, target in targetPlan.items():
-        if isinstance(target, CTargets.CLibrary):
-            GenerateCLibrary(target, transitiveDepsDict[targetRef], ninja)
-        elif isinstance(target, CTargets.CBinary):
-            GenerateCBinary(target, transitiveDepsDict[targetRef], ninja)
-        elif isinstance(target, CTargets.CxxLibrary):
-            GenerateCxxLibrary(target, transitiveDepsDict[targetRef], ninja)
-        elif isinstance(target, CTargets.CxxBinary):
-            GenerateCxxBinary(target, transitiveDepsDict[targetRef], ninja)
+        if isinstance(target, CCTargets.CCLibrary):
+            GenerateCCLibrary(target, transitiveDepsDict[targetRef], ninja)
+        elif isinstance(target, CCTargets.CCBinary):
+            GenerateCCBinary(target, transitiveDepsDict[targetRef], ninja)
         else:
             assert False
 

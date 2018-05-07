@@ -4,7 +4,7 @@
 import os
 import sys
 import pathlib
-import CTargets
+import CCTargets
 
 from HandleTgBuild import HandleTgBuild
 

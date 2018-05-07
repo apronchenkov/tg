@@ -1,7 +1,7 @@
 from Target import Target
 
 
-class CTarget(Target):
+class CCTarget(Target):
     def __init__(
             self,
             srcFs,
@@ -107,17 +107,9 @@ class CTarget(Target):
         return result
 
 
-class CLibrary(CTarget):
-    publicName = 'c_library'
+class CCLibrary(CCTarget):
+    publicName = 'cc_library'
 
 
-class CBinary(CTarget):
-    publicName = 'c_binary'
-
-
-class CxxLibrary(CTarget):
-    publicName = 'cxx_library'
-
-
-class CxxBinary(CTarget):
-    publicName = 'cxx_binary'
+class CCBinary(CCTarget):
+    publicName = 'cc_binary'
