@@ -27,8 +27,8 @@ def ShowGeneralHelp():
 
 
 def main():
-    if (len(sys.argv) == 1 or 'help' in sys.argv or '-h' in sys.argv
-            or '--help' in sys.argv):
+    if (len(sys.argv) == 1 or 'help' in sys.argv or '-h' in sys.argv or
+            '--help' in sys.argv):
         ShowGeneralHelp()
     tgPath = os.getenv('TGPATH')
     assert tgPath is not None, "TGPATH is not set."
