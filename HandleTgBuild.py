@@ -96,6 +96,7 @@ def GenerateCCLibrary(target, transitiveDeps, ninja):
     assert isinstance(target, CCTargets.CCLibrary)
     compilerVariables = {}
     tmp = set(target.GetCompilerFlags())
+    tmp.update(target.GetTransitiveCompilerFlags())
     for dep in transitiveDeps:
         tmp.update(dep.GetTransitiveCompilerFlags())
     if tmp:
@@ -129,6 +130,7 @@ def GenerateCCBinary(target, transitiveDeps, ninja):
     assert isinstance(target, CCTargets.CCBinary)
     compilerVariables = {}
     tmp = set(target.GetCompilerFlags())
+    tmp.update(target.GetTransitiveCompilerFlags())
     for dep in transitiveDeps:
         tmp.update(dep.GetTransitiveCompilerFlags())
     if tmp:
@@ -204,6 +206,7 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
         '-pedantic',
         '-Werror',
         '-isystem pkg',
+        '-pthread',
     ]
     if os.uname().sysname == 'Darwin':
         ninja.variable('cc', 'clang')
@@ -213,10 +216,8 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     else:
         ninja.variable('cc', 'gcc')
         ninja.variable('cxx', 'g++')
-        ninja.variable('cc_flags',
-                       ccFlags + ['-std=gnu11', '-pthread', '-mcpu=native'])
-        ninja.variable('cxx_flags',
-                       ccFlags + ['-std=c++17', '-pthread', '-mcpu=native'])
+        ninja.variable('cc_flags', ccFlags + ['-std=gnu11', '-mcpu=native'])
+        ninja.variable('cxx_flags', ccFlags + ['-std=c++17', '-mcpu=native'])
     ninja.newline()
 
     ninja.rule(
