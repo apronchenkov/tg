@@ -216,8 +216,8 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     else:
         ninja.variable('cc', 'gcc')
         ninja.variable('cxx', 'g++')
-        ninja.variable('cc_flags', ccFlags + ['-std=gnu11', '-mcpu=native'])
-        ninja.variable('cxx_flags', ccFlags + ['-std=c++17', '-mcpu=native'])
+        ninja.variable('cc_flags', ccFlags + ['-std=gnu11', '-mcpu=native', '-Wshadow=local', '-Wno-psabi'])
+        ninja.variable('cxx_flags', ccFlags + ['-std=c++17', '-mcpu=native', '-Wshadow=local', '-Wno-psabi'])
     ninja.newline()
 
     ninja.rule(
