@@ -28,13 +28,24 @@ def ShowGeneralHelp():
     sys.exit(-1)
 
 
+def FindTgPath():
+    tgPathEnv = os.getenv('TGPATH')
+    if tgPathEnv is not None:
+        return pathlib.Path(tgPathEnv).expanduser()
+    for path in pathlib.Path.cwd().parents:
+        if (path / '.tgroot').exists():
+            return path
+    path = pathlib.Path.cwd()
+    if (path / '.tgroot').exists():
+        return path
+    raise RuntimeError('Unable to detect the root directory. Please create '
+                       '`.tgroot` file or use TGPATH environment variable.')
+
 def main():
     if (len(sys.argv) == 1 or 'help' in sys.argv or '-h' in sys.argv or
             '--help' in sys.argv):
         ShowGeneralHelp()
-    tgPath = os.getenv('TGPATH')
-    assert tgPath is not None, "TGPATH is not set."
-    tgPath = pathlib.Path(tgPath).expanduser()
+    tgPath = FindTgPath()
     if sys.argv[1] == 'build':
         HandleTgBuild(tgPath, sys.argv[2:])
     elif sys.argv[1] == 'clean':
