@@ -198,26 +198,39 @@ def MakeBuildNinja(tgPath, srcFs, targetRefs, targetPlan):
     ninja.newline()
 
     ccFlags = [
+        '-fdiagnostics-absolute-paths',
         '-O2',
+        #'-fsanitize=address',
+        #'-fsanitize=undefined',
         '-g',
-        '-march=native',
+        '-fno-omit-frame-pointer',
+        '-Wno-c11-extensions',
+        '-Wno-c99-extensions',
+        #'-march=native',
         '-Wall',
         '-Wextra',
+        #'-ffast-math',
         '-pedantic',
         '-Werror',
         '-isystem pkg',
         '-pthread',
+        '-DNDEBUG',
+        #'-S', '-mllvm', '--x86-asm-syntax=intel',
     ]
     if os.uname().sysname == 'Darwin':
         ninja.variable('cc', 'clang')
         ninja.variable('cxx', 'clang++')
-        ninja.variable('cc_flags', ccFlags + ['-std=c11'])
-        ninja.variable('cxx_flags', ccFlags + ['-std=c++17', '-stdlib=libc++'])
+        ninja.variable('cc_flags', ccFlags + ['-std=c17'])
+        ninja.variable('cxx_flags', ccFlags + ['-std=c++2b', '-stdlib=libc++'])
     else:
         ninja.variable('cc', 'gcc')
         ninja.variable('cxx', 'g++')
-        ninja.variable('cc_flags', ccFlags + ['-std=gnu11', '-mcpu=native', '-Wshadow=local', '-Wno-psabi'])
-        ninja.variable('cxx_flags', ccFlags + ['-std=c++17', '-mcpu=native', '-Wshadow=local', '-Wno-psabi'])
+        ninja.variable(
+            'cc_flags', ccFlags +
+            ['-std=c17', '-mcpu=native', '-Wshadow=local', '-Wno-psabi'])
+        ninja.variable(
+            'cxx_flags', ccFlags +
+            ['-std=c++20', '-mcpu=native', '-Wshadow=local', '-Wno-psabi'])
     ninja.newline()
 
     ninja.rule(
